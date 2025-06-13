@@ -1,0 +1,109 @@
+## 1 ##
+# 比較"人員實測數值"與"線上自動偵測儀器"，兩者數據關係。
+A_pulp = read.csv("Portfolio2_MLR.csv",header = T)
+str(A_pulp)
+
+# 以人員實測數值為依據，分三組進行卡方同質性檢定
+# Group 1 380 - 400
+# Group 2 401 - 420
+# Group 3 421 - 440
+
+A_pulp$Group_artifical <- as.character(A_pulp$Group_artifical)
+A_pulp$Group_meter <- as.character(A_pulp$Group_meter)
+str(A_pulp)
+
+#資料整理並編輯為矩陣格式
+table(A_pulp$Group_artifical)
+table(A_pulp$Group_meter)
+
+chi_data <- matrix(0, 2, 3)
+chi_data[1,] = c(12, 8, 10)
+chi_data[2,] = c(2, 14, 14)
+
+rownames(chi_data) <- c("人員實測", "自動偵測")
+colnames(chi_data) <- c("380-400", "400-420", "420-440")  
+chi_data
+
+## 計算比例 ##
+
+S1 <- round(prop.table(chi_data, margin = 1), digits = 2)  #計算行百分比
+S1  #顯示行百分比
+
+S2 <- chisq.test(chi_data, correct = FALSE)  #不進行連續性校正
+S2$expected  #查看期望次數
+S2
+# P-value = 0.008889 < 0.05 值，
+# 人員實測數據與自動偵測在統計上有顯著的差異性
+
+library(vcd)  #載入套件：vcd
+assocstats(chi_data)  #計算Cramer V係數
+# 0Effect size (ES)  Interpretation
+#  ES ≤ 0.2	      The result is weak. Although the result is statistically significant, the fields are only weakly associated.
+# 0.2 < ES ≤ 0.6	The result is moderate. The fields are moderately associated.
+#  ES > 0.6	      The result is strong. The fields are strongly associated.
+
+#################################################################################
+## 2 ##
+# 因子ａ、因子ｂ、因子ｃ、因子ｄ為因子，分析因子與"紙張物性Ａ"及"紙張物性Ｂ"的關連性。
+A_pulp_sub = subset(A_pulp, select = c(factor_a, factor_b, 
+                                       factor_c, factor_d,
+                                       properties_A, properties_B))
+A_pulp_cor <- A_pulp_sub
+colnames(A_pulp_cor) = c("因子ａ", "因子ｂ",
+                         "因子ｃ", "因子ｄ", "紙張物性Ａ", "紙張物性Ｂ")
+res <- cor(A_pulp_cor)
+round(res, 2)
+library(corrplot)
+corrplot(res, type = "upper", order = 'original', tl.col = "black", tl.srt = 50, 
+         addCoef.col = 'black', tl.pos = 'd')
+
+#################################################################################
+## 3 ##
+# 使用DOE 計算每個因子的最佳化。
+
+# 觀察相關係數
+cor(A_pulp_sub)[6,]
+str(A_pulp_sub)
+free_mlm <- lm(properties_A ~ factor_a + factor_b + factor_c + factor_d, 
+                data = A_pulp_sub)
+free_mlm
+summary(free_mlm)
+
+#逐步法 Stepwise method
+library(MASS)
+fullM <- lm(properties_A ~ factor_a + factor_b + factor_c + factor_d, data = A_pulp_sub)
+stepwise.lm = stepAIC(fullM, direction = "both")
+summary(stepwise.lm)
+
+
+A_pulp_doe = A_pulp
+str(A_pulp_doe)
+A_pulp_doe2 = subset(A_pulp_doe, select = c(G_factor_a, G_factor_d, 
+                                            properties_A, properties_B))
+
+# 步驟4.建立 二因子模型
+pulp_doe <- aov(properties_A ~ G_factor_a*G_factor_d, data = A_pulp_doe2)
+summary(pulp_doe)
+
+# 反應圖
+interaction.plot(x.factor     = A_pulp_doe2$G_factor_a,
+                 trace.factor = A_pulp_doe2$G_factor_d,
+                 response     = A_pulp_doe2$properties_A,
+                 fun = mean,
+                 type = "b",
+                 col = c("black","red","blue","green"),
+                 pch = c(19, 17, 15, 7),
+                 fixed = TRUE,
+                 legend = FALSE,
+                 cex = 2,
+                 xlab = "因子ａ",
+                 ylab = "紙張物性Ａ",
+                 main = "紙張物性Ａ二因子實驗反應圖")
+legend("topright", 
+       legend = c("因子ｄ 1.51 ~ 1.99", "因子ｄ 1.99 ~ 2.46",
+                  "因子ｄ 2.46 ~ 2.94", "因子ｄ 2.94 ~ 3.42"),
+       pch = c(19, 17, 15, 7), lty = c(2, 2, 1, 1),
+       col = c("black","red","blue","green"), 
+       text.col = c("black","red","blue","green"))
+
+grid()
