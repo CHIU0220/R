@@ -1,0 +1,102 @@
+# State0  對策實行前
+# State1  24/12/10 對策1
+# State2  25/02/06 對策2
+# State3  25/03/06 對策3
+
+# 載入資料集
+Portfolio1 = read.csv("Portfolio1_state.csv",header = T)
+str(Portfolio1)
+
+attach(Portfolio1)
+
+### t 檢定
+## 紙張物性A
+# State0 > State1
+mean(state0_S) - mean(state1_S)
+# greater less to 0
+t.test(state0_S, state1_S, alternative = 'less')
+
+# State1 > State2
+mean(state1_S) - mean(state2_S)
+# greater less to 0
+t.test(state1_S, state2_S, alternative = 'less')
+
+# State2 > State3
+mean(state2_S) - mean(state3_S)
+# greater less to 0
+t.test(state2_S, state3_S, alternative = 'less')
+
+
+## 紙張物性B
+# State0 > State1
+mean(state0_R) - mean(state1_R)
+# greater less to 0
+t.test(state0_R, state1_R, alternative = 'greater')
+
+# State1 > State2
+mean(state1_R) - mean(state2_R)
+# greater less to 0
+t.test(state1_R, state2_R, alternative = 'greater')
+
+# State2 > State3
+mean(state2_R) - mean(state3_R)
+# greater less to 0
+t.test(state2_R, state3_R, alternative = 'greater')
+
+
+### draw data
+item  <- rep(1:10, 4)
+index1 <- rep("狀態 0",10)
+index2 <- rep("狀態 1",10)
+index3 <- rep("狀態 2",10)
+index4 <- rep("狀態 3",10)
+legend <- c(index1, index2, index3, index4)
+A310_S <- c(state0_S, state1_S, state2_S, state3_S)
+A310_R <- c(state0_R, state1_R, state2_R, state3_R)
+
+DATA_draw = cbind(item, legend, A310_S, A310_R)
+DATA_draw = as.data.frame(DATA_draw)
+str(DATA_draw)
+DATA_draw$item  <- as.numeric(DATA_draw$item)
+DATA_draw$A310_S <- as.numeric(DATA_draw$A310_S)
+DATA_draw$A310_R <- as.numeric(DATA_draw$A310_R)
+str(DATA_draw)
+
+library(tidyverse)
+### 紙張物性A
+A310_S_P <- ggplot(DATA_draw, aes(item, A310_S, colour = legend)) +
+  geom_line() +
+  facet_wrap(~ legend, nrow = 1, ncol = 4,)+
+  scale_x_continuous(limits = c(0, 10), labels = scales::number_format(accuracy = 1)) +
+  scale_y_continuous(name = "紙張物性Ａ", limits = c(2, 8), labels = scales::number_format(accuracy = 0.01))+
+  ggtitle("紙張物性Ａ變化 - 依對策實行日排序")
+
+A310_S_M <- data.frame(legend = c("狀態 0", "狀態 1", "狀態 2", "狀態 3"), 
+                       SM = c(mean(state0_S), mean(state1_S), mean(state2_S), mean(state3_S))
+)
+A310_S_P + geom_hline(aes(yintercept = SM), A310_S_M, 
+                      linetype = 2, linewidth = 1, color = "royalblue2")
+
+
+### 紙張物性B
+A310_R_P <- ggplot(DATA_draw, aes(item, A310_R, colour = legend)) +
+  geom_line() +
+  facet_wrap(~ legend, nrow = 1, ncol = 4,)+
+  scale_x_continuous(limits = c(0, 10), labels = scales::number_format(accuracy = 1)) +
+  scale_y_continuous(name = "紙張物性Ｂ", limits = c(8.5, 11.5), labels = scales::number_format(accuracy = 0.01))+
+  ggtitle("紙張物性Ｂ變化 - 依對策實行日排序")
+
+A310_R_M <- data.frame(legend = c("狀態 0", "狀態 1", "狀態 2", "狀態 3"), 
+                       RM = c(mean(state0_R), mean(state1_R), mean(state2_R), mean(state3_R))
+)
+A310_R_P + geom_hline(aes(yintercept = RM), A310_R_M, 
+                      linetype = 2, linewidth = 1, color = "royalblue2")
+
+##### 繪圖統整
+a = A310_S_P + geom_hline(aes(yintercept = SM), A310_S_M, linetype = 2, linewidth = 1, color = "royalblue2")
+b = A310_R_P + geom_hline(aes(yintercept = RM), A310_R_M, linetype = 2, linewidth = 1, color = "royalblue2")
+
+library(cowplot)
+plot_grid(a,b, nrow = 2, ncol = 1, labels = c("A", "B"))
+
+detach(Portfolio1)
