@@ -1,0 +1,81 @@
+library(survival)
+library(ranger)
+library(ggplot2)
+library(dplyr)
+library(ggfortify)
+
+surv_hold = read.csv("Holding_surv_data.csv",header = T)
+str(surv_hold)
+
+surv_hold$factor_a = as.factor(surv_hold$factor_a)
+surv_hold$factor_b = as.factor(surv_hold$factor_b)
+surv_hold$factor_c = as.factor(surv_hold$factor_c)
+surv_hold$PM       = as.factor(surv_hold$PM)
+str(surv_hold)
+
+## Kaplan-Meier method ##
+km <- with(surv_hold, Surv(Holding, Status))
+
+km_fit <- survfit(Surv(Holding, Status) ~ 1, data = surv_hold)
+summary(km_fit, times = c(1,30,60*(1:9)))
+autoplot(km_fit)
+
+library(survminer)
+ggsurvplot(km_fit,
+           conf.int = FALSE,
+           surv.median.line = "hv",
+           legend = "none"
+)
+summary(km_fit)$table["median"]
+
+## 不同因子下的存活曲線 ##.
+max(surv_hold$Holding)
+km_C_fit <- survfit(Surv(Holding, Status) ~ factor_c, data = surv_hold)
+summary(km_C_fit, times = c(1,30,60*(1:12)))
+autoplot(km_C_fit)
+
+
+## log-rank test進行兩組存活曲線的檢定 ##
+ggsurvplot(km_C_fit,
+           pval = TRUE, pval.method = TRUE, conf.int = TRUE,
+           risk.table = TRUE, # Add risk table
+           risk.table.col = "factor_c", # Change risk table color by groups
+           #linetype = "factor_c", # Change line type by groups
+           surv.median.line = "hv", # Specify median survival
+           #tables.theme = clean_theme(),
+           ggtheme = theme_bw(), # Change ggplot2 theme
+           palette = c("#E7B800", "#2E9FDF"),
+           #pval.coord=c(500, 0.95),
+           font.main = c(14,"bold","red"),
+           title = "因子Ｃ在不同水準下的紙張物性存活曲線比較", 
+           xlab  = "維持時間（分）", 
+           ylab  = "維持機率", 
+           legend.title = "因子Ｃ", 
+           legend.labs = c("8%","10%"),
+           #xlim = c(0, 750) 
+           #ylim = c(0.25, 1)
+           )
+
+
+km_R_fit <- survfit(Surv(Holding, Status) ~ factor_b, data = surv_hold)
+summary(km_R_fit, times = c(1,30,60*(1:9)))
+autoplot(km_R_fit)
+summary(km_R_fit)$table
+
+## log-rank test進行兩組存活曲線的檢定 ##
+ggsurvplot(km_R_fit,
+           pval = TRUE,
+           pval.method = TRUE
+)
+
+km_A_fit <- survfit(Surv(Holding, Status) ~ factor_a, data = surv_hold)
+summary(km_A_fit, times = c(1,30,60*(1:9)))
+autoplot(km_A_fit)
+summary(km_A_fit)$table
+
+## log-rank test進行兩組存活曲線的檢定 ##
+ggsurvplot(km_A_fit,
+           pval = TRUE,
+           pval.method = TRUE
+)
+
